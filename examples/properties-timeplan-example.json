@@ -1,0 +1,18 @@
+{
+  "aavaApiServer": "https://api-test.aava.fi",
+  "clientId": "<ask from your aava representative>",
+  "clientSecret": "<ask from your aava representative>",
+  "organizationId": "<ask from your aava representative>",
+  "hrMgmtSystem": {
+    "moduleName": "examples.simple_example_hrm"
+  },
+  "hourTrackingSystem": {
+    "moduleName": "examples.timeplan_example_time_tracker",
+    "host": "ftp.timeplan.com",
+    "port": 22,
+    "path": "/path/to/file.csv",
+    "id": "timeplan_user",
+    "pw": "a_password",
+    "hostKey": "astringthatcannotbemadesenseof"
+  }
+}

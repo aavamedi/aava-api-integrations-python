@@ -1,0 +1,15 @@
+{
+  "aavaApiServer": "https://api-test.aava.fi",
+  "clientId": "<ask from your aava representative>",
+  "clientSecret": "<ask from your aava representative>",
+  "organizationId": "<ask from your aava representative>",
+  "hrMgmtSystem": {
+    "moduleName": "examples.excel_example_hrm",
+    "departmentsFile": "examples/excel_example_departments.xlsx",
+    "employeeFile": "examples/excel_example_hrm.xlsx"
+  },
+  "hourTrackingSystem": {
+    "moduleName": "examples.excel_example_time_tracker",
+    "absenceFile": "examples/excel_example_time_tracker.xlsx"
+  }
+}

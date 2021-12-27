@@ -1,0 +1,15 @@
+{
+  "aavaApiServer": "https://api-test.aava.fi",
+  "clientId": "<ask from your aava representative>",
+  "clientSecret": "<ask from your aava representative>",
+  "organizationId": "<ask from your aava representative>",
+  "hrMgmtSystem": {
+    "moduleName": "examples.sympa_hr",
+    "url": "https://api.sympahr.net/api/testinterface",
+    "id": "a447eb14e84e4ecf8eae52cfb932a3b3",
+    "pw": "26c1967a07a04c43b8abada48d1379c2"  
+  },
+  "hourTrackingSystem": {
+    "moduleName": "examples.simple_example_time_tracker"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "connections": [
+    {
+      "connectionName": "Example Company",
+      "aavaApiServer": "https://api-test.aava.fi",
+      "clientId": "<ask from your aava representative>",
+      "clientSecret": "<ask from your aava representative>",
+      "organizationId": "<ask from your aava representative>",
+      "hrMgmtSystem": {
+        "moduleName": "hrm_module"
+      },
+      "hourTrackingSystem": {
+        "moduleName": "time_tracker_module"
+      }
+    }
+  ]
+}
