@@ -1,4 +1,6 @@
 {
+  "logLevel": 0,
+  "logFile": "execution_log.txt",
   "connections": [
     {
       "connectionName": "Example Company",

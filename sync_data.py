@@ -1,61 +1,54 @@
 import json
 import importlib
-import shutil
+from datetime import datetime
 from time import sleep
 from sys import argv
+from enum import Enum
 
 # All the API calls are wrapped in functions
 import aavahr_graphql as api
 
+# Properties are read using a specific mnodule
+from properties import load_properties
 
-def load_properties() -> dict:
+
+class LOG_LEVEL(Enum):
+    DEBUG = 0
+    INFO = 1
+    NOTICE = 2
+    ERROR = 3
+    CRITICAL = 4
+
+
+def write_log(level, message):
     """
-    Loads the properties from 'properties.json' to be used for connecting to
-    Aava API and to specify the modules that are used for retrieving the employee
-    and absence data from 
+    Writes a log entry in the system log
 
-
-    Returns:
-        dict: A dictionary object with a number of connection parameter sets;
-            the parameter set for current connection is passed to import functions
+    Args:
+        level (LOG_LEVEL): [description]
+        message (String): [description]
     """
-    try:
-        with open('properties.json') as json_file:
-            props = json.load(json_file)
 
-            # The properties file should contain a list of connections. If only one set of connection
-            # parameters is provided, the list is created and this set included as the one and only
-            if "connections" not in props:
-                new_props = {'connections': [props]}
-                props = new_props
+    # If run manually, all this may be of interest to the user
+    print(message)
 
-            for conn in props['connections']:
-                conn_name = ''
-                if "connectionName" in conn:
-                    conn_name = " in parameter set '{}'".format(
-                        conn["connectionName"])
-                assert "aavaApiServer" in conn, "aavaApiServer missing" + conn_name
-                assert "clientId" in conn, "clientId missing" + conn_name
-                assert "clientSecret" in conn, "clientSecret missing" + conn_name
-                assert "organizationId" in conn, "organizationId missing" + conn_name
-                assert "hrMgmtSystem" in conn, "hrMgmtSystem missing" + conn_name
-                assert "moduleName" in conn["hrMgmtSystem"], "hrMgmtSystem.moduleName missing" + conn_name
-                assert "hourTrackingSystem" in conn, "hourTrackingSystem missing" + conn_name
-                assert "moduleName" in conn["hourTrackingSystem"], "hourTrackingSystem.moduleName missing" + conn_name
+    props = load_properties()
 
-            return props
+    if "logFile" in props:
+        log_file = props['logFile']
+    else:
+        log_file = 'execution_log.txt'
 
-    except FileNotFoundError:
-        shutil.copyfile('properties-template.json', 'properties.json')
-        print('''
-        Empty properties file has been created as 'properties.json'
-        Fill in the connection parameters and rerun the script
-        ''')
-        exit()
-    except AssertionError as e:
-        print("Properties file not complete:")
-        print(repr(e))
-        exit()
+    if "logLevel" in props:
+        log_level = props['logLevel']
+    else:
+        log_level = LOG_LEVEL.NOTICE.value
+
+    if level.value >= log_level:
+        now = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
+        lfile = open(log_file, 'a')
+        lfile.writelines("\n{}: {:<8} {}".format(now, level.name, message))
+        lfile.close()
 
 
 def main():
@@ -102,7 +95,8 @@ def main():
     # Run the imports for each connection
     for conn in props['connections']:
         if "connectionName" in conn:
-            print("Running import for '{}'".format(conn["connectionName"]))
+            write_log(LOG_LEVEL.INFO,
+                      "Running import for '{}'".format(conn["connectionName"]))
 
         # Personnel and department data fetching is wrapped in one source file,
         # absences in another one.
@@ -123,7 +117,8 @@ def main():
             if '--read_only' in argv:
                 print(json.dumps(deps, indent=4, sort_keys=True))
             else:
-                print("Importing " + str(len(deps)) + " departments...")
+                write_log(LOG_LEVEL.NOTICE,
+                          "Importing " + str(len(deps)) + " departments...")
                 res_deps = api.import_departments(conn, deps)
                 message_ids.append(res_deps['importDepartments']['messageId'])
 
@@ -133,7 +128,8 @@ def main():
             if '--read_only' in argv:
                 print(json.dumps(ccs, indent=4, sort_keys=True))
             else:
-                print("Importing " + str(len(ccs)) + " cost centers...")
+                write_log(LOG_LEVEL.NOTICE,
+                          "Importing " + str(len(ccs)) + " cost centers...")
                 res_ccs = api.import_cost_centers(conn, ccs)
                 message_ids.append(res_ccs['importCostCenters']['messageId'])
 
@@ -143,7 +139,8 @@ def main():
             if '--read_only' in argv:
                 print(json.dumps(emps, indent=4, sort_keys=True))
             else:
-                print("Importing " + str(len(emps)) + " employees...")
+                write_log(LOG_LEVEL.NOTICE,
+                          "Importing " + str(len(emps)) + " employees...")
                 res_emps = api.import_employees(conn, emps)
                 message_ids.append(res_emps['importEmployees']['messageId'])
 
@@ -153,7 +150,8 @@ def main():
             if '--read_only' in argv:
                 print(json.dumps(abs, indent=4, sort_keys=True))
             else:
-                print("Importing " + str(len(abs)) + " absences...")
+                write_log(LOG_LEVEL.NOTICE,
+                          "Importing " + str(len(abs)) + " absences...")
                 res_abs = api.import_absences(conn, abs)
                 message_ids.append(res_abs['importAbsences']['messageId'])
 
@@ -175,16 +173,22 @@ def main():
             sleep(1)
 
         for r in results['processingStatusWithVerify']:
-            print("\nFor " + str(r['importType']) +
-                  " at " + str(r['timestamp']))
-            print("Message ID: " + r['messageId'])
-            print("Status    : " + r['importStatus'])
+            write_log(LOG_LEVEL.NOTICE,
+                      "For " + str(r['importType']) +
+                      " at " + str(r['timestamp']))
+            write_log(LOG_LEVEL.NOTICE,
+                      "Message ID: " + r['messageId'])
+            write_log(LOG_LEVEL.NOTICE,
+                      "Status    : " + r['importStatus'])
             if r['importStatus'] == 'FAILURE':
-                print("Error     : " + r['error'])
+                write_log(LOG_LEVEL.CRITICAL,
+                          "Error     : " + r['error'])
             if r['warnings']:
-                print("\nThere were warnings:")
+                write_log(LOG_LEVEL.ERROR,
+                          "There were warnings:")
                 for warning in r['warnings']:
-                    print(warning['warning'], warning['externalId'])
+                    write_log(LOG_LEVEL.ERROR,
+                              warning['warning'] + ' / ' + warning['externalId'])
 
 
 if __name__ == "__main__":
