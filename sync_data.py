@@ -1,54 +1,16 @@
 import json
 import importlib
-from datetime import datetime
 from time import sleep
 from sys import argv
-from enum import Enum
 
 # All the API calls are wrapped in functions
 import aavahr_graphql as api
 
 # Properties are read using a specific mnodule
-from properties import load_properties
+from prop_handler import load_properties
 
-
-class LOG_LEVEL(Enum):
-    DEBUG = 0
-    INFO = 1
-    NOTICE = 2
-    ERROR = 3
-    CRITICAL = 4
-
-
-def write_log(level, message):
-    """
-    Writes a log entry in the system log
-
-    Args:
-        level (LOG_LEVEL): [description]
-        message (String): [description]
-    """
-
-    # If run manually, all this may be of interest to the user
-    print(message)
-
-    props = load_properties()
-
-    if "logFile" in props:
-        log_file = props['logFile']
-    else:
-        log_file = 'execution_log.txt'
-
-    if "logLevel" in props:
-        log_level = props['logLevel']
-    else:
-        log_level = LOG_LEVEL.NOTICE.value
-
-    if level.value >= log_level:
-        now = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
-        lfile = open(log_file, 'a')
-        lfile.writelines("\n{}: {:<8} {}".format(now, level.name, message))
-        lfile.close()
+# There is also a module for handling writing to logs
+from log_handler import LOG_LEVEL, write_log, set_log_file, set_log_level
 
 
 def get_command_line_arguments():
@@ -121,6 +83,11 @@ Options:''')
 def main():
     # Load the connection parameters or inform user that the parameter file is not found
     props = load_properties()
+    if "logFile" in props:
+        set_log_file(props["logFile"])
+
+    if "logLevel" in props:
+        set_log_level(LOG_LEVEL(props["logLevel"]))
 
     args = get_command_line_arguments()
 
@@ -129,8 +96,23 @@ def main():
     # Run the imports for each connection
     index = 0
     for conn in props['connections']:
-        conn_name = "Connection_#{}".format(index)
+        # If there is are connection specific log settings that should be used, they are set now
+        if "logFile" in conn:
+            set_log_file(conn["logFile"])
+        elif "logFile" in props:
+            set_log_file(props["logFile"])
+        else:
+            set_log_file(None)
+
+        if "logLevel" in conn:
+            set_log_level(LOG_LEVEL(conn["logLevel"]))
+        elif "logLevel" in props:
+            set_log_level(LOG_LEVEL(props["logLevel"]))
+        else:
+            set_log_file(None)
+
         index += 1
+        conn_name = "Connection_#{}".format(index)
 
         if "connectionName" in conn:
             conn_name = conn['connectionName']
@@ -138,11 +120,11 @@ def main():
         if args['import_only_organization']:
             if args['import_only_organization'] != conn_name:
                 write_log(LOG_LEVEL.INFO,
-                          "Skipping import for '{}'".format(conn["connectionName"]))
+                          "Skipping import for '{}'".format(conn_name))
                 continue
 
         write_log(LOG_LEVEL.INFO,
-                  "Running import for '{}'".format(conn["connectionName"]))
+                  "Running import for '{}'".format(conn_name))
 
         # Personnel and department data fetching is wrapped in one source file,
         # absences in another one.
