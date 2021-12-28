@@ -51,52 +51,98 @@ def write_log(level, message):
         lfile.close()
 
 
-def main():
-    # Check the command line parameters to see, what is required of this run
-    acceptable_args = [
-        '--help',
-        '-sd', '--suppress_deps',
-        '-se', '--suppress_employees',
-        '-sa', '--suppress_absences',
-        '-sc', '--suppress_ccs',
-        '--read_only'
-    ]
+def get_command_line_arguments():
+    arguments = {
+        'import_departments': True,
+        'import_cost_centers': True,
+        'import_employees': True,
+        'import_absences': True,
+        'import_only_organization': None,
+        'read_only': False
+    }
 
-    for a in argv[1:]:
+    # Check the command line parameters to see, what is required of this run
+    acceptable_args = {
+        '--suppress_deps': 'Skips importing departments',
+        '--suppress_ccs': 'Skips importing cost centers',
+        '--suppress_employees': 'Skips importing employee information',
+        '--suppress_absences': 'Skips importing absence information',
+        '-sd': 'Short for --suppress_deps',
+        '-sc': 'Short for --suppress_ccs',
+        '-se': 'Short for --suppress_employees',
+        '-sa': 'Short for --suppress_absences',
+        '--import_org': 'Only import named organization',
+        '--read_only': 'Only read the information and show output on screen, do not call API',
+        '--help': 'Show this help',
+    }
+
+    if '--help' in argv:
+        print('''This script reads the employee and absence data from specified source
+and sends it to Aava-API.
+
+How to use:
+python sync_data.py [--help] [--suppress_deps] [--suppress_employees]
+    [--suppress_absences] [--import_org "<org name>"] [--read_only]
+
+Options:''')
+        for k_arg in acceptable_args.keys():
+            print(" {:<20} - {}".format(k_arg, acceptable_args[k_arg]))
+        exit()
+
+    cli_args = argv[1:]
+    while len(cli_args) > 0:
+        a = cli_args.pop(0)
         if a not in acceptable_args:
             print('Argument ' + a + ' not recognized, exiting!')
             exit()
 
-    if '--help' in argv:
-        print('''
-        How to use:
-        python sync_data.py [--help | --suppress_deps | --suppress_employees | --suppress_absences | --read_only ]
+        if a == '-sd' or a == '--suppress_deps':
+            arguments['import_departments'] = False
 
-        Options:
-        --help - Show this help
-        -sd / --suppress_deps - Don't read or write department information
-        -se / --suppress_employees - Don't read or write employee information
-        -sa / --suppress_absences - Don't read or write absence information
-        -sc / --suppress_ccs - Don't read or write cost center information
-        --read_only - Don't make API call, only print out the data that was read from source
-        ''')
-        exit()
+        if a == '-sc' or a == '--suppress_ccs':
+            arguments['import_cost_centers'] = False
 
-    process_departments = '-sd' not in argv and '--suppress_deps' not in argv
-    process_cost_centers = '-sc' not in argv and '--suppress_ccs' not in argv
-    process_employees = '-se' not in argv and '--suppress_employees' not in argv
-    process_absences = '-sa' not in argv and '--suppress_absences' not in argv
+        if a == '-se' or a == '--suppress_employees':
+            arguments['import_employees'] = False
 
+        if a == '-sa' or a == '--suppress_absences':
+            arguments['import_absences'] = False
+
+        if a == '--read_only':
+            arguments['read_only'] = True
+
+        if a == '--import_org':
+            org = cli_args.pop(0)
+            arguments['import_only_organization'] = org
+
+    return arguments
+
+
+def main():
     # Load the connection parameters or inform user that the parameter file is not found
     props = load_properties()
+
+    args = get_command_line_arguments()
 
     message_ids = []
 
     # Run the imports for each connection
+    index = 0
     for conn in props['connections']:
+        conn_name = "Connection_#{}".format(index)
+        index += 1
+
         if "connectionName" in conn:
-            write_log(LOG_LEVEL.INFO,
-                      "Running import for '{}'".format(conn["connectionName"]))
+            conn_name = conn['connectionName']
+
+        if args['import_only_organization']:
+            if args['import_only_organization'] != conn_name:
+                write_log(LOG_LEVEL.INFO,
+                          "Skipping import for '{}'".format(conn["connectionName"]))
+                continue
+
+        write_log(LOG_LEVEL.INFO,
+                  "Running import for '{}'".format(conn["connectionName"]))
 
         # Personnel and department data fetching is wrapped in one source file,
         # absences in another one.
@@ -111,10 +157,10 @@ def main():
             print("Module loading failed:", repr(e))
             exit()
 
-        if process_departments:
+        if args['import_departments']:
             # Load department data from HRM adjacent system and push it to Aava-API
             deps = hrm.get_departments(conn["hrMgmtSystem"])
-            if '--read_only' in argv:
+            if args['read_only']:
                 print(json.dumps(deps, indent=4, sort_keys=True))
             else:
                 write_log(LOG_LEVEL.NOTICE,
@@ -122,10 +168,10 @@ def main():
                 res_deps = api.import_departments(conn, deps)
                 message_ids.append(res_deps['importDepartments']['messageId'])
 
-        if process_cost_centers:
+        if args['import_cost_centers']:
             # Load cost center data from HRM adjacent system and push it to Aava-API
             ccs = hrm.get_cost_centers(conn["hrMgmtSystem"])
-            if '--read_only' in argv:
+            if args['read_only']:
                 print(json.dumps(ccs, indent=4, sort_keys=True))
             else:
                 write_log(LOG_LEVEL.NOTICE,
@@ -133,10 +179,10 @@ def main():
                 res_ccs = api.import_cost_centers(conn, ccs)
                 message_ids.append(res_ccs['importCostCenters']['messageId'])
 
-        if process_employees:
+        if args['import_employees']:
             # Load employee data from HRM and push it to Aava-API
             emps = hrm.get_personnel(conn["hrMgmtSystem"])
-            if '--read_only' in argv:
+            if args['read_only']:
                 print(json.dumps(emps, indent=4, sort_keys=True))
             else:
                 write_log(LOG_LEVEL.NOTICE,
@@ -144,10 +190,10 @@ def main():
                 res_emps = api.import_employees(conn, emps)
                 message_ids.append(res_emps['importEmployees']['messageId'])
 
-        if process_absences:
+        if args['import_absences']:
             # Load absence data from hour trackin system and push it to Aava-API
             abs = ttr.get_absences(conn["hourTrackingSystem"])
-            if '--read_only' in argv:
+            if args['read_only']:
                 print(json.dumps(abs, indent=4, sort_keys=True))
             else:
                 write_log(LOG_LEVEL.NOTICE,

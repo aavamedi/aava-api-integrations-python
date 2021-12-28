@@ -78,6 +78,10 @@ sent to the API
 `-sa / --suppress_absences` Absence data is ignored: it is neither read from the source nor
 sent to the API
 
+`--import_org` When multiple connections have been defined in the properties file, this
+argument can be used for importing data for only one of the organizations. The organization's
+name is given as the next argument (in "quotes").
+
 `--read_only` This is useful for testing the data read: the information is retrieved from the
 source, but it is not sent to the API
 
