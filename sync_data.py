@@ -109,7 +109,7 @@ def main():
         elif "logLevel" in props:
             set_log_level(LOG_LEVEL(props["logLevel"]))
         else:
-            set_log_file(None)
+            set_log_level(None)
 
         index += 1
         conn_name = "Connection_#{}".format(index)
