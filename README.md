@@ -11,6 +11,35 @@ Also, to see if the data fetched from HRM system or hour tracker by your module 
 can run the script using the "--read_only" argument, in which case the retrieved results are
 printed out instead of sent to API.
 
+## Making a copy of the repository
+
+In order to seamlessly add your own code on top of the basic building blocks of
+the reference implementation, you should create your own repository in, for example,
+Github. Have the reference implementation as a read-only remote, so you can easily
+refresh any new feature additions or bug fixes.
+
+Run the following commands, replacing the repository address with your own:
+
+```sh
+git clone --bare git@github.com:aavamedi/aava-api-integrations-python.git
+cd aava-api-integrations-python.git
+git push --mirror git@github.com:<owner>/my-integration.git
+cd ..
+rm -rf aava-api-integrations-python.git
+git clone git@github.com:<owner>/my-integration.git
+cd my-integration
+git remote add reference git@github.com:aavamedi/aava-api-integrations-python.git
+git remote set-url --push reference DISABLE
+```
+
+Later, to update the codes from the reference implementatio, just run the
+following commands:
+
+```sh
+git fetch reference
+git rebase reference/master
+```
+
 ## Prerequisites
 
 Python must be installed. This code has been verified as working on Python 3.8.5. While there
