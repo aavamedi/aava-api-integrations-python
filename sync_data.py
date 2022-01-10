@@ -1,5 +1,6 @@
 import json
 import importlib
+from os import write
 from time import sleep
 from sys import argv
 
@@ -91,8 +92,6 @@ def main():
 
     args = get_command_line_arguments()
 
-    message_ids = []
-
     # Run the imports for each connection
     index = 0
     for conn in props['connections']:
@@ -113,6 +112,7 @@ def main():
 
         index += 1
         conn_name = "Connection_#{}".format(index)
+        message_ids = []
 
         if "connectionName" in conn:
             conn_name = conn['connectionName']
@@ -139,49 +139,61 @@ def main():
             print("Module loading failed:", repr(e))
             exit()
 
-        if args['import_departments']:
-            # Load department data from HRM adjacent system and push it to Aava-API
-            deps = hrm.get_departments(conn["hrMgmtSystem"])
-            if args['read_only']:
-                print(json.dumps(deps, indent=4, sort_keys=True))
-            else:
-                write_log(LOG_LEVEL.NOTICE,
-                          "Importing " + str(len(deps)) + " departments...")
-                res_deps = api.import_departments(conn, deps)
-                message_ids.append(res_deps['importDepartments']['messageId'])
+        try:
+            if args['import_departments']:
+                # Load department data from HRM adjacent system and push it to Aava-API
+                deps = hrm.get_departments(conn["hrMgmtSystem"])
+                if args['read_only']:
+                    print(json.dumps(deps, indent=4, sort_keys=True))
+                else:
+                    write_log(LOG_LEVEL.NOTICE,
+                              "Importing " + str(len(deps)) + " departments...")
+                    res_deps = api.import_departments(conn, deps)
+                    message_ids.append(
+                        res_deps['importDepartments']['messageId'])
 
-        if args['import_cost_centers']:
-            # Load cost center data from HRM adjacent system and push it to Aava-API
-            ccs = hrm.get_cost_centers(conn["hrMgmtSystem"])
-            if args['read_only']:
-                print(json.dumps(ccs, indent=4, sort_keys=True))
-            else:
-                write_log(LOG_LEVEL.NOTICE,
-                          "Importing " + str(len(ccs)) + " cost centers...")
-                res_ccs = api.import_cost_centers(conn, ccs)
-                message_ids.append(res_ccs['importCostCenters']['messageId'])
+            if args['import_cost_centers']:
+                # Load cost center data from HRM adjacent system and push it to Aava-API
+                ccs = hrm.get_cost_centers(conn["hrMgmtSystem"])
+                if args['read_only']:
+                    print(json.dumps(ccs, indent=4, sort_keys=True))
+                else:
+                    write_log(LOG_LEVEL.NOTICE,
+                              "Importing " + str(len(ccs)) + " cost centers...")
+                    res_ccs = api.import_cost_centers(conn, ccs)
+                    message_ids.append(
+                        res_ccs['importCostCenters']['messageId'])
 
-        if args['import_employees']:
-            # Load employee data from HRM and push it to Aava-API
-            emps = hrm.get_personnel(conn["hrMgmtSystem"])
-            if args['read_only']:
-                print(json.dumps(emps, indent=4, sort_keys=True))
-            else:
-                write_log(LOG_LEVEL.NOTICE,
-                          "Importing " + str(len(emps)) + " employees...")
-                res_emps = api.import_employees(conn, emps)
-                message_ids.append(res_emps['importEmployees']['messageId'])
+            if args['import_employees']:
+                # Load employee data from HRM and push it to Aava-API
+                emps = hrm.get_personnel(conn["hrMgmtSystem"])
+                if args['read_only']:
+                    print(json.dumps(emps, indent=4, sort_keys=True))
+                else:
+                    write_log(LOG_LEVEL.NOTICE,
+                              "Importing " + str(len(emps)) + " employees...")
+                    res_emps = api.import_employees(conn, emps)
+                    message_ids.append(
+                        res_emps['importEmployees']['messageId'])
 
-        if args['import_absences']:
-            # Load absence data from hour trackin system and push it to Aava-API
-            abs = ttr.get_absences(conn["hourTrackingSystem"])
-            if args['read_only']:
-                print(json.dumps(abs, indent=4, sort_keys=True))
-            else:
-                write_log(LOG_LEVEL.NOTICE,
-                          "Importing " + str(len(abs)) + " absences...")
-                res_abs = api.import_absences(conn, abs)
-                message_ids.append(res_abs['importAbsences']['messageId'])
+            if args['import_absences']:
+                # Load absence data from hour trackin system and push it to Aava-API
+                abs = ttr.get_absences(conn["hourTrackingSystem"])
+                if args['read_only']:
+                    print(json.dumps(abs, indent=4, sort_keys=True))
+                else:
+                    write_log(LOG_LEVEL.NOTICE,
+                              "Importing " + str(len(abs)) + " absences...")
+                    res_abs = api.import_absences(conn, abs)
+                    message_ids.append(res_abs['importAbsences']['messageId'])
+
+        except Exception as e:
+            # If an error occurs during import, it is usually because of invalid
+            # payload. This should be corrected in the HRM or time tracker data
+            # reading, so processing is halted at this point
+            write_log(LOG_LEVEL.CRITICAL,
+                      "Critical error during import: {}".format(e))
+            exit()
 
         print("Results:")
 
