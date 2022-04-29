@@ -18,16 +18,19 @@ the reference implementation, you should create your own repository in, for exam
 Github. Have the reference implementation as a read-only remote, so you can easily
 refresh any new feature additions or bug fixes.
 
-Run the following commands, replacing the repository address with your own:
+Copy following commands to a text editor, replace the repository user and name with
+your own, then run it on console (will require some tuning for Windows).
 
 ```sh
+export REPO_USER=github-user
+export REPO_NAME=new-integration-repo
 git clone --bare git@github.com:aavamedi/aava-api-integrations-python.git
 cd aava-api-integrations-python.git
-git push --mirror git@github.com:<owner>/my-integration.git
+git push --mirror git@github.com:$REPO_USER/$REPO_NAME.git
 cd ..
 rm -rf aava-api-integrations-python.git
-git clone git@github.com:<owner>/my-integration.git
-cd my-integration
+git clone git@github.com:$REPO_USER/$REPO_NAME.git
+cd $REPO_NAME
 git remote add reference git@github.com:aavamedi/aava-api-integrations-python.git
 git remote set-url --push reference DISABLE
 ```
