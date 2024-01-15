@@ -1,6 +1,18 @@
 import json
-from gql import gql, Client
-from gql.transport.requests import RequestsHTTPTransport
+from urllib import request
+
+
+def graphql_request(parameters: dict, payload: str) -> dict:
+    url = parameters["aavaApiServer"] + "/hr"
+    req = request.Request(url, data=payload.encode("utf-8"), method="POST")
+    req.add_header(
+        "X-API-key", f"{parameters['clientId']}:{parameters['clientSecret']}"
+    )
+    req.add_header("Accept", "application/json")
+    req.add_header("Content-Type", "application/json")
+    response = request.urlopen(req)
+    data = json.loads(response.read().decode("utf-8"))["data"]
+    return data
 
 
 def import_departments(parameters: dict, departments: dict) -> dict:
@@ -15,32 +27,27 @@ def import_departments(parameters: dict, departments: dict) -> dict:
         dict: Structure containing the request ID for querying the status of request; in r['importDepartments']['messageId']
     """
 
-    mutation = '''
-        mutation importDepartments(
-            $organizationExternalId: ID!
-            $departments: [DepartmentInput!]!
-        ) {
-            importDepartments(
-            organizationExternalId: $organizationExternalId
-            departments: $departments
+    request_data = {
+        "query": """
+            mutation importDepartments(
+                $organizationExternalId: ID!
+                $departments: [DepartmentInput!]!
             ) {
-            messageId
+                importDepartments(
+                organizationExternalId: $organizationExternalId
+                departments: $departments
+                ) {
+                messageId
+                }
             }
-        }
-    '''
-    client = Client(transport=RequestsHTTPTransport(
-        url=parameters['aavaApiServer'] + '/hr',
-        headers={'X-API-key': parameters['clientId'] + ':' + parameters['clientSecret']})
-    )
-
-    query = gql(mutation)
-    variables = {
-        "organizationExternalId": parameters['organizationId'],
-        "departments": departments,
+        """,
+        "variables": {
+            "organizationExternalId": parameters["organizationId"],
+            "departments": departments,
+        },
     }
 
-    result = client.execute(query, variable_values=json.dumps(variables))
-    return result
+    return graphql_request(parameters, json.dumps(request_data))
 
 
 def import_cost_centers(parameters: dict, costCenters: dict) -> dict:
@@ -55,32 +62,27 @@ def import_cost_centers(parameters: dict, costCenters: dict) -> dict:
         dict: Structure containing the request ID for querying the status of request; in r['importCostCenters']['messageId']
     """
 
-    mutation = '''
-        mutation importCostCenters(
-            $organizationExternalId: ID!
-            $costCenters: [CostCenterInput!]!
-        ) {
-            importCostCenters(
-            organizationExternalId: $organizationExternalId
-            costCenters: $costCenters
+    request_data = {
+        "query": """
+            mutation importCostCenters(
+                $organizationExternalId: ID!
+                $costCenters: [CostCenterInput!]!
             ) {
-            messageId
+                importCostCenters(
+                organizationExternalId: $organizationExternalId
+                costCenters: $costCenters
+                ) {
+                messageId
+                }
             }
-        }
-    '''
-    client = Client(transport=RequestsHTTPTransport(
-        url=parameters['aavaApiServer'] + '/hr',
-        headers={'X-API-key': parameters['clientId'] + ':' + parameters['clientSecret']})
-    )
-
-    query = gql(mutation)
-    variables = {
-        "organizationExternalId": parameters['organizationId'],
-        "costCenters": costCenters,
+        """,
+        "variables": {
+            "organizationExternalId": parameters["organizationId"],
+            "costCenters": costCenters,
+        },
     }
 
-    result = client.execute(query, variable_values=json.dumps(variables))
-    return result
+    return graphql_request(parameters, json.dumps(request_data))
 
 
 def import_employees(parameters: dict, employees: dict) -> dict:
@@ -95,32 +97,27 @@ def import_employees(parameters: dict, employees: dict) -> dict:
         dict: Structure containing the request ID for querying the status of request; in r['importEmployees']['messageId']
     """
 
-    mutation = '''
-        mutation importEmployees(
-            $organizationExternalId: ID!
-            $employees: [EmployeeInput!]!
-        ) {
-            importEmployees(
-                organizationExternalId: $organizationExternalId
-                employees: $employees
+    request_data = {
+        "query": """
+            mutation importEmployees(
+                $organizationExternalId: ID!
+                $employees: [EmployeeInput!]!
             ) {
-            messageId
+                importEmployees(
+                    organizationExternalId: $organizationExternalId
+                    employees: $employees
+                ) {
+                messageId
+                }
             }
-        }
-    '''
-    client = Client(transport=RequestsHTTPTransport(
-        url=parameters['aavaApiServer'] + "/hr",
-        headers={'X-API-key': parameters['clientId'] + ':' + parameters['clientSecret']})
-    )
-
-    query = gql(mutation)
-    variables = {
-        "organizationExternalId": parameters['organizationId'],
-        "employees": employees,
+        """,
+        "variables": {
+            "organizationExternalId": parameters["organizationId"],
+            "employees": employees,
+        },
     }
 
-    result = client.execute(query, variable_values=json.dumps(variables))
-    return result
+    return graphql_request(parameters, json.dumps(request_data))
 
 
 def import_absences(parameters: dict, absences) -> dict:
@@ -135,32 +132,27 @@ def import_absences(parameters: dict, absences) -> dict:
         dict: Structure containing the request ID for querying the status of request; in r['importAbsences']['messageId']
     """
 
-    mutation = '''
-        mutation importAbsences(
-            $organizationExternalId: ID!
-            $absences: [AbsenceInput!]!
-        ) {
-            importAbsences(
-                organizationExternalId: $organizationExternalId
-                absences: $absences
+    request_data = {
+        "query": """
+            mutation importAbsences(
+                $organizationExternalId: ID!
+                $absences: [AbsenceInput!]!
             ) {
-                messageId
+                importAbsences(
+                    organizationExternalId: $organizationExternalId
+                    absences: $absences
+                ) {
+                    messageId
+                }
             }
-        }
-    '''
-    client = Client(transport=RequestsHTTPTransport(
-        url=parameters['aavaApiServer'] + "/hr",
-        headers={'X-API-key': parameters['clientId'] + ':' + parameters['clientSecret']})
-    )
-
-    query = gql(mutation)
-    variables = {
-        "organizationExternalId": parameters['organizationId'],
-        "absences": absences,
+        """,
+        "variables": {
+            "organizationExternalId": parameters["organizationId"],
+            "absences": absences,
+        },
     }
 
-    result = client.execute(query, variable_values=json.dumps(variables))
-    return result
+    return graphql_request(parameters, json.dumps(request_data))
 
 
 def get_statuses(parameters: dict, message_ids: list) -> dict:
@@ -179,33 +171,29 @@ def get_statuses(parameters: dict, message_ids: list) -> dict:
         dict: A dictionary object with key 'processingStatusWithVerify', under which there is an array of status objects
     """
 
-    query = gql('''
-        query processingStatusWithVerify(
-            $messageIds: [ID!]!
-            $organizationExternalId: ID!
-        ) {
-            processingStatusWithVerify(
-                messageIds: $messageIds,
-                organizationExternalId: $organizationExternalId
+    request_data = {
+        "query": """
+            query processingStatusWithVerify(
+                $messageIds: [ID!]!
+                $organizationExternalId: ID!
             ) {
-                messageId,
-                importType,
-                importStatus,
-                timestamp,
-                error,
-                warnings { warning, externalId }
+                processingStatusWithVerify(
+                    messageIds: $messageIds,
+                    organizationExternalId: $organizationExternalId
+                ) {
+                    messageId,
+                    importType,
+                    importStatus,
+                    timestamp,
+                    error,
+                    warnings { warning, externalId }
+                }
             }
-        }
-    ''')
-    client = Client(transport=RequestsHTTPTransport(
-        url=parameters['aavaApiServer'] + "/hr",
-        headers={'X-API-key': parameters['clientId'] + ':' + parameters['clientSecret']})
-    )
-
-    variables = {
-        "messageIds": message_ids,
-        "organizationExternalId": parameters['organizationId']
+        """,
+        "variables": {
+            "messageIds": message_ids,
+            "organizationExternalId": parameters["organizationId"],
+        },
     }
 
-    result = client.execute(query, variable_values=json.dumps(variables))
-    return result
+    return graphql_request(parameters, json.dumps(request_data))
